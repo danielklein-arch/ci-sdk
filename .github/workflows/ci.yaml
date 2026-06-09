@@ -1,0 +1,93 @@
+name: ci-sdk
+
+# Reusable CI (workflow_call) — obaluje `bunx ci-sdk`. Consumer = Nx workspace na Bunu
+# s @danielklein/ci-sdk v devDeps. Reference: uses: danielklein-arch/ci-sdk/.github/workflows/ci.yaml@v1
+on:
+  workflow_call:
+    inputs:
+      skip-codecheck: { type: boolean, default: false }
+      skip-nx-sync: { type: boolean, default: false }
+      skip-wrangler-types: { type: boolean, default: false }
+      skip-typecheck: { type: boolean, default: false }
+      skip-tests: { type: boolean, default: false }
+      skip-build: { type: boolean, default: false }
+      # Affected: jen dotčené projekty (nx affected + nx-set-shas). Jinak run-many (vše).
+      affected: { type: boolean, default: false }
+      bun-version: { type: string, default: latest }
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # Plná historie → nx affected base/head + nx-set-shas.
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ inputs.bun-version }}
+
+      - run: bun install --frozen-lockfile
+
+      # Nastaví NX_BASE / NX_HEAD pro nx affected (PR: merge-base; push: poslední úspěšný commit).
+      - uses: nrwl/nx-set-shas@v4
+
+      - name: ci-sdk check
+        env:
+          AFFECTED: ${{ inputs.affected }}
+          SKIP_CODECHECK: ${{ inputs.skip-codecheck }}
+          SKIP_NX_SYNC: ${{ inputs.skip-nx-sync }}
+          SKIP_WRANGLER_TYPES: ${{ inputs.skip-wrangler-types }}
+          SKIP_TYPECHECK: ${{ inputs.skip-typecheck }}
+          SKIP_TESTS: ${{ inputs.skip-tests }}
+        run: |
+          args=()
+          [ "$AFFECTED" = "true" ] && args+=(--affected)
+          [ "$SKIP_CODECHECK" = "true" ] && args+=(--skip-codecheck)
+          [ "$SKIP_NX_SYNC" = "true" ] && args+=(--skip-nx-sync)
+          [ "$SKIP_WRANGLER_TYPES" = "true" ] && args+=(--skip-wrangler-types)
+          [ "$SKIP_TYPECHECK" = "true" ] && args+=(--skip-typecheck)
+          [ "$SKIP_TESTS" = "true" ] && args+=(--skip-tests)
+          bunx ci-sdk check "${args[@]}"
+
+  # Spočítá projekty s 'build' targetem (affected-aware) → JSON pro matrix.
+  targets:
+    if: ${{ !inputs.skip-build }}
+    runs-on: ubuntu-latest
+    outputs:
+      targets: ${{ steps.t.outputs.targets }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ inputs.bun-version }}
+      - run: bun install --frozen-lockfile
+      - uses: nrwl/nx-set-shas@v4
+      - id: t
+        env:
+          AFFECTED: ${{ inputs.affected }}
+        run: |
+          args=()
+          [ "$AFFECTED" = "true" ] && args+=(--affected)
+          bunx ci-sdk build-targets "${args[@]}"
+
+  build:
+    needs: targets
+    if: ${{ !inputs.skip-build && needs.targets.outputs.targets != '[]' && needs.targets.outputs.targets != '' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project: ${{ fromJSON(needs.targets.outputs.targets) }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ inputs.bun-version }}
+      - run: bun install --frozen-lockfile
+      - name: Build project
+        env:
+          PROJECT: ${{ matrix.project }}
+        run: bunx nx build "$PROJECT"
