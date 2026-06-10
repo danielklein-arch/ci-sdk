@@ -14,6 +14,43 @@ consumer dodá tenký GH workflow (`workflow_call`) a `nrwl/nx-set-shas` pro aff
 
 Nahrazuje sdílený reusable CI workflow — checky jdou spustit i **lokálně** (`bunx ci-sdk check`).
 
+## Adopce na novém projektu — krok za krokem
+
+### 0. Předpoklady (Nx workspace na Bunu)
+- root `nx.json` + per-worker/`packages` `project.json` s targety:
+  - `typecheck` (`tsc --noEmit -p <projekt>/tsconfig.json`)
+  - `test` (vitest; workery přes `@cloudflare/vitest-pool-workers`)
+  - `types` (`wrangler types ./worker-configuration.d.ts -c ./wrangler.dev.jsonc`, `cache: false`)
+  - volitelně `build` (naplní build matrix)
+- root `biome.json`; commitnuté `worker-configuration.d.ts` per worker (drift check je hlídá).
+- Vzor kompletního setupu: [`dbu-txs-preview-lab`](https://github.com/danielklein-arch/dbu-txs-preview-lab).
+
+### 1. Instalace
+```bash
+bun add -d @danielklein/ci-sdk
+```
+
+### 2. Workflow — zkopíruj šablonu
+```bash
+cp node_modules/@danielklein/ci-sdk/templates/ci.yml .github/workflows/ci.yml
+```
+([`templates/ci.yml`](templates/ci.yml) — `pull_request` only; push do stable větví gate-uje
+deploy-stable z deploy-sdk šablon, ať CI neběží 2×.) Uprav `branches` + `bun-version`.
+
+### 3. Gotchas
+- **`permissions: actions: read`** je POVINNÉ u callera — `nrwl/nx-set-shas` se ptá Actions API.
+- ci-sdk repo je private → cross-repo `uses:` chce access grant (jednorázově, vlastník):
+  `gh api -X PUT repos/danielklein-arch/ci-sdk/actions/permissions/access -f access_level=user`
+- Projekt mimo Nx graf (root `topology.ts` apod.) ci-sdk nepokryje → vlastní „glue" job
+  (`tsc --noEmit -p tsconfig.json`).
+
+### 4. Branch protection
+Vyžaduj checks `ci / check` (+ `ci / build (...)` dle potřeby) na PR větvích.
+
+### 5. Reusable workflow inputs
+`affected` (default false → run-many vše), `bun-version`, `skip-codecheck|nx-sync|wrangler-types|typecheck|tests|build`.
+Jobs: `check` (sekvence checků) → `targets` → `build` (matrix projektů s `build` targetem).
+
 ## CLI
 
 ```bash
@@ -46,8 +83,8 @@ const targets = await buildTargets({ affected: true }) // string[] pro matrix
 
 ## Stav
 
-`0.0.1` — extrahováno z `dbu-txs-preview-lab` (referenční consumer). Zbývá: reusable
-`workflow_call` workflow + tenký consumer workflow (Phase 2); dbu-txs jako reálný consumer (Phase 3).
+`0.0.2` — extrahováno z `dbu-txs-preview-lab` (referenční consumer). Reusable `workflow_call`
+workflow (`@v1`) + consumer šablona v `templates/` hotové. Zbývá: dbu-txs jako reálný consumer.
 
 ## Build
 

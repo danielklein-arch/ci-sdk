@@ -1,0 +1,25 @@
+name: CI
+
+# Konzumuje reusable ci-sdk workflow. JEN pull_request — push do stable vetvi ma CI
+# embednutou jako gate v deploy-stable.yml (deploy-sdk sablona) → zadna duplicita.
+# Prizpusob: branches, bun-version, skip-* inputy.
+on:
+  pull_request:
+    branches: [dev, staging, prod]
+
+# Caller musi grantnout actions:read → reusable ci-sdk workflow (nx-set-shas) ho potrebuje.
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: ci-${{ github.event.number }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    uses: danielklein-arch/ci-sdk/.github/workflows/ci.yaml@v1
+    with:
+      affected: true
+      bun-version: 1.3.12
+    secrets: inherit
