@@ -6,6 +6,8 @@ on:
   workflow_call:
     inputs:
       skip-codecheck: { type: boolean, default: false }
+      # Override codecheck prikazu (default `bunx biome ci`) - napr. `bun run lint` pro eslint consumery.
+      codecheck-command: { type: string, default: '' }
       skip-nx-sync: { type: boolean, default: false }
       skip-wrangler-types: { type: boolean, default: false }
       skip-typecheck: { type: boolean, default: false }
@@ -41,6 +43,7 @@ jobs:
         env:
           AFFECTED: ${{ inputs.affected }}
           SKIP_CODECHECK: ${{ inputs.skip-codecheck }}
+          CODECHECK_CMD: ${{ inputs.codecheck-command }}
           SKIP_NX_SYNC: ${{ inputs.skip-nx-sync }}
           SKIP_WRANGLER_TYPES: ${{ inputs.skip-wrangler-types }}
           SKIP_TYPECHECK: ${{ inputs.skip-typecheck }}
@@ -49,6 +52,7 @@ jobs:
           args=()
           [ "$AFFECTED" = "true" ] && args+=(--affected)
           [ "$SKIP_CODECHECK" = "true" ] && args+=(--skip-codecheck)
+          [ -n "$CODECHECK_CMD" ] && args+=(--codecheck-cmd "$CODECHECK_CMD")
           [ "$SKIP_NX_SYNC" = "true" ] && args+=(--skip-nx-sync)
           [ "$SKIP_WRANGLER_TYPES" = "true" ] && args+=(--skip-wrangler-types)
           [ "$SKIP_TYPECHECK" = "true" ] && args+=(--skip-typecheck)

@@ -6,6 +6,8 @@ export type AffectedOptions = {
 }
 
 export type CheckOptions = AffectedOptions & {
+  // Override codecheck příkazu (default `bunx biome ci`) — např. `bun run lint` pro eslint consumery.
+  codecheckCmd?: string
   skipCodecheck?: boolean
   skipNxSync?: boolean
   skipWranglerTypes?: boolean

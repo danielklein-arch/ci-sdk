@@ -18,6 +18,7 @@ function usage(): never {
 
   check                  CI sekvence: codecheck · nx-sync · wrangler-types · typecheck · test
     --skip-codecheck --skip-nx-sync --skip-wrangler-types --skip-typecheck --skip-tests
+    --codecheck-cmd <cmd>  override codecheck příkazu (default \`bunx biome ci\`)
     --affected           jen affected projekty (nx affected); jinak run-many (vše)
     --base <sha> --head <sha>   override affected base/head (jinak NX_BASE/NX_HEAD)
 
@@ -34,6 +35,7 @@ const { values, positionals } = parseArgs({
   allowPositionals: true,
   options: {
     'skip-codecheck': { type: 'boolean' },
+    'codecheck-cmd': { type: 'string' },
     'skip-nx-sync': { type: 'boolean' },
     'skip-wrangler-types': { type: 'boolean' },
     'skip-typecheck': { type: 'boolean' },
@@ -55,6 +57,7 @@ try {
   if (cmd === 'check') {
     const opts: CheckOptions = {
       ...affectedOpts(),
+      codecheckCmd: values['codecheck-cmd'],
       skipCodecheck: values['skip-codecheck'],
       skipNxSync: values['skip-nx-sync'],
       skipWranglerTypes: values['skip-wrangler-types'],
