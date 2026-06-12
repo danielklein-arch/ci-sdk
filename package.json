@@ -1,6 +1,6 @@
 {
   "name": "@danielklein/ci-sdk",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "type": "module",
   "description": "Nx-native CI engine + CLI for Bun monorepos — codecheck / nx-sync / wrangler-types drift / typecheck / test, affected-aware. Bun-only.",
   "license": "MIT",
@@ -13,7 +13,11 @@
   "bin": {
     "ci-sdk": "./dist/cli.js"
   },
-  "files": ["dist", "src", "templates"],
+  "files": [
+    "dist",
+    "src",
+    "templates"
+  ],
   "publishConfig": {
     "access": "public"
   },
