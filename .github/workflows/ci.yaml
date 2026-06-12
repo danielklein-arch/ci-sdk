@@ -43,7 +43,7 @@ jobs:
       - run: bun install --frozen-lockfile
 
       # Nastaví NX_BASE / NX_HEAD pro nx affected (PR: merge-base; push: poslední úspěšný commit).
-      - uses: nrwl/nx-set-shas@v4
+      - uses: nrwl/nx-set-shas@v5
 
       - name: ci-sdk check
         env:
@@ -87,7 +87,7 @@ jobs:
           key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
           restore-keys: bun-${{ runner.os }}-
       - run: bun install --frozen-lockfile
-      - uses: nrwl/nx-set-shas@v4
+      - uses: nrwl/nx-set-shas@v5
       - id: t
         env:
           AFFECTED: ${{ inputs.affected }}
